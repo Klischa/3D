@@ -1,0 +1,202 @@
+{
+ "raf_dark_green": {
+  "color": [
+   0.243,
+   0.29,
+   0.18
+  ],
+  "metallic": 0.0,
+  "roughness": 0.62,
+  "alpha": 1.0
+ },
+ "raf_dark_earth": {
+  "color": [
+   0.408,
+   0.306,
+   0.196
+  ],
+  "metallic": 0.0,
+  "roughness": 0.66,
+  "alpha": 1.0
+ },
+ "raf_sky_duckegg": {
+  "color": [
+   0.667,
+   0.753,
+   0.765
+  ],
+  "metallic": 0.0,
+  "roughness": 0.6,
+  "alpha": 1.0
+ },
+ "sky_spinner": {
+  "color": [
+   0.749,
+   0.745,
+   0.694
+  ],
+  "metallic": 0.12,
+  "roughness": 0.4,
+  "alpha": 1.0
+ },
+ "canopy_glass": {
+  "color": [
+   0.784,
+   0.855,
+   0.886
+  ],
+  "metallic": 0.0,
+  "roughness": 0.06,
+  "alpha": 0.32
+ },
+ "canopy_frame": {
+  "color": [
+   0.196,
+   0.208,
+   0.204
+  ],
+  "metallic": 0.0,
+  "roughness": 0.55,
+  "alpha": 1.0
+ },
+ "metal_strut": {
+  "color": [
+   0.596,
+   0.612,
+   0.627
+  ],
+  "metallic": 0.85,
+  "roughness": 0.34,
+  "alpha": 1.0
+ },
+ "tyre_rubber": {
+  "color": [
+   0.075,
+   0.075,
+   0.086
+  ],
+  "metallic": 0.0,
+  "roughness": 0.95,
+  "alpha": 1.0
+ },
+ "wheel_hub": {
+  "color": [
+   0.549,
+   0.565,
+   0.58
+  ],
+  "metallic": 0.7,
+  "roughness": 0.4,
+  "alpha": 1.0
+ },
+ "prop_blade": {
+  "color": [
+   0.149,
+   0.133,
+   0.118
+  ],
+  "metallic": 0.0,
+  "roughness": 0.48,
+  "alpha": 1.0
+ },
+ "prop_tip_yellow": {
+  "color": [
+   0.859,
+   0.702,
+   0.161
+  ],
+  "metallic": 0.0,
+  "roughness": 0.5,
+  "alpha": 1.0
+ },
+ "exhaust_steel": {
+  "color": [
+   0.361,
+   0.318,
+   0.29
+  ],
+  "metallic": 0.55,
+  "roughness": 0.62,
+  "alpha": 1.0
+ },
+ "exhaust_soot": {
+  "color": [
+   0.129,
+   0.122,
+   0.118
+  ],
+  "metallic": 0.0,
+  "roughness": 0.85,
+  "alpha": 1.0
+ },
+ "gunmetal": {
+  "color": [
+   0.184,
+   0.192,
+   0.204
+  ],
+  "metallic": 0.9,
+  "roughness": 0.38,
+  "alpha": 1.0
+ },
+ "matte_black": {
+  "color": [
+   0.086,
+   0.09,
+   0.094
+  ],
+  "metallic": 0.0,
+  "roughness": 0.85,
+  "alpha": 1.0
+ },
+ "roundel_red": {
+  "color": [
+   0.706,
+   0.129,
+   0.149
+  ],
+  "metallic": 0.0,
+  "roughness": 0.62,
+  "alpha": 1.0
+ },
+ "roundel_white": {
+  "color": [
+   0.918,
+   0.914,
+   0.878
+  ],
+  "metallic": 0.0,
+  "roughness": 0.62,
+  "alpha": 1.0
+ },
+ "roundel_blue": {
+  "color": [
+   0.129,
+   0.259,
+   0.475
+  ],
+  "metallic": 0.0,
+  "roughness": 0.62,
+  "alpha": 1.0
+ },
+ "roundel_yellow": {
+  "color": [
+   0.878,
+   0.718,
+   0.176
+  ],
+  "metallic": 0.0,
+  "roughness": 0.62,
+  "alpha": 1.0
+ },
+ "radiator_matrix": {
+  "color": [
+   0.055,
+   0.058,
+   0.061
+  ],
+  "metallic": 0.0,
+  "roughness": 0.9,
+  "alpha": 1.0
+ }
+}
