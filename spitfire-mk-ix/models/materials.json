@@ -31,12 +31,12 @@
  },
  "sky_spinner": {
   "color": [
-   0.749,
-   0.745,
-   0.694
+   0.73,
+   0.78,
+   0.685
   ],
-  "metallic": 0.12,
-  "roughness": 0.4,
+  "metallic": 0.1,
+  "roughness": 0.45,
   "alpha": 1.0
  },
  "canopy_glass": {

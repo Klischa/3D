@@ -48,7 +48,7 @@ def mat(name, color, metallic=0.0, roughness=0.7, alpha=1.0, double_sided=False)
 M_GREEN = mat("raf_dark_green", (0.243, 0.290, 0.180), roughness=0.62)
 M_OCEAN = mat("raf_ocean_grey", (0.419, 0.439, 0.408), roughness=0.64)
 M_SEA = mat("raf_sea_grey", (0.615, 0.647, 0.667), roughness=0.60)
-M_SPIN = mat("sky_spinner", (0.749, 0.745, 0.694), roughness=0.40, metallic=0.12)
+M_SPIN = mat("sky_spinner", (0.730, 0.780, 0.685), roughness=0.45, metallic=0.10)
 M_GLASS = mat("canopy_glass", (0.784, 0.855, 0.886), roughness=0.06, alpha=0.32,
               double_sided=True)
 M_FRAME = mat("canopy_frame", (0.196, 0.208, 0.204), roughness=0.55)
@@ -76,9 +76,8 @@ SPEC = {
     "span": 11.23,        # м, размах
     "height": 3.86,       # м, высота в стояночном положении (по справочнику)
     "wing_area": 22.48,   # м², площадь крыла
-    "c_root": 2.60,       # м, хорда в корне
-    "c_tip": 1.52,        # м, хорда конца «плоской» части
-    "dihedral": 5.5,      # град, поперечное V
+    "c_root": 2.56,       # м, хорда в корне (центр эллипса крыла)
+    "dihedral": 6.0,      # град, поперечное V
     "incidence": 2.5,     # град, угол установки в корне
     "prop_dia": 3.28,     # м, диаметр четырёхлопастного винта Rotol (10'9\")
     "prop_blades": 4,
@@ -103,22 +102,22 @@ FUS_RY = Curve1D([
     (-4.05, 0.042), (-3.80, 0.085), (-3.50, 0.140), (-3.10, 0.195),
     (-2.60, 0.245), (-2.10, 0.290), (-1.60, 0.335), (-1.10, 0.380),
     (-0.60, 0.420), (-0.10, 0.462), (0.40, 0.492), (0.90, 0.515),
-    (1.40, 0.530), (1.90, 0.535), (2.70, 0.528), (3.20, 0.510),
-    (3.70, 0.475), (4.20, 0.420), (4.60, 0.375), (4.85, 0.325),
-    (4.92, 0.300),
+    (1.40, 0.530), (1.90, 0.535), (2.70, 0.500), (3.20, 0.480),
+    (3.70, 0.450), (4.20, 0.410), (4.60, 0.375), (4.85, 0.335),
+    (4.92, 0.330),
 ])
 FUS_RZ = Curve1D([
     (-4.05, 0.050), (-3.80, 0.100), (-3.50, 0.175), (-3.10, 0.255),
     (-2.60, 0.325), (-2.10, 0.385), (-1.60, 0.435), (-1.10, 0.480),
     (-0.60, 0.520), (-0.10, 0.556), (0.40, 0.582), (0.90, 0.596),
-    (1.40, 0.600), (1.90, 0.592), (2.70, 0.575), (3.20, 0.548),
-    (3.70, 0.505), (4.20, 0.447), (4.60, 0.372), (4.85, 0.315),
-    (4.92, 0.300),
+    (1.40, 0.585), (1.90, 0.570), (2.70, 0.530), (3.20, 0.480),
+    (3.70, 0.445), (4.20, 0.430), (4.60, 0.372), (4.85, 0.335),
+    (4.92, 0.330),
 ])
 FUS_ZC = Curve1D([
-    (-4.05, 0.015), (-3.50, 0.042), (-2.60, 0.070), (-1.60, 0.105),
-    (-0.60, 0.150), (0.40, 0.180), (0.90, 0.180), (1.40, 0.165),
-    (2.70, 0.108), (3.20, 0.072), (3.70, 0.032), (4.20, 0.000),
+    (-4.05, 0.015), (-3.50, 0.042), (-2.60, 0.040), (-1.60, 0.030),
+    (-0.60, 0.060), (0.40, 0.090), (0.90, 0.090), (1.40, 0.080),
+    (2.70, 0.020), (3.20, -0.010), (3.70, -0.020), (4.20, 0.000),
     (4.60, -0.012), (4.85, -0.003), (4.92, 0.000),
 ])
 FUS_STATIONS = [p[0] for p in FUS_RY.pts]
@@ -154,37 +153,38 @@ def fus_top_z(x, y):
 # --------------------------------------------------------------------------
 # крыло
 # --------------------------------------------------------------------------
-def wing_scale(y):
-    a = abs(y)
-    if a <= 5.0:
-        return 1.0
-    u = clamp((a - 5.0) / (Y_TIP - 5.0), 0.0, 1.0)
-    return math.sqrt(max(0.0, 1.0 - u * u))
+WING_EA = 5.63       # полуось эллипса хорд (чуть больше полуразмаха: кончик узкий, но не нулевой)
+WING_XC_ROOT = 0.55  # центр корневой хорды (1.83 - 2.56 / 2)
+WING_XC_TIP = 0.82   # центр хорды законцовки: задняя кромка заметает сильнее передней
+
+
+def _wing_ell(y):
+    t = min(abs(y), WING_EA - 1e-6) / WING_EA
+    return math.sqrt(max(0.0, 1.0 - t * t))
 
 
 def wing_chord(y):
-    a = abs(y)
-    base = SPEC["c_root"] - (min(a, 5.0) / 5.0) * (SPEC["c_root"] - SPEC["c_tip"])
-    return max(base * wing_scale(y), 0.02)
+    return max(SPEC["c_root"] * _wing_ell(y), 0.02)
 
 
-def wing_te_x(y):
-    a = min(abs(y), 5.0)
-    return (X_LE - SPEC["c_root"]) + (a / 5.0) * (SPEC["c_root"] - SPEC["c_tip"])
+def wing_center_x(y):
+    t = 1.0 - _wing_ell(y)
+    return lerp(WING_XC_ROOT, WING_XC_TIP, t ** 0.9)
 
 
 def wing_le_x(y):
-    a = abs(y)
-    if a <= 5.0:
-        return X_LE
-    return wing_te_x(y) + wing_chord(y)
+    return wing_center_x(y) + wing_chord(y) / 2.0
+
+
+def wing_te_x(y):
+    return wing_center_x(y) - wing_chord(y) / 2.0
 
 
 def wing_zref(y):
     a = abs(y)
     z = Z_WING_ROOT
     if a > 0.55:
-        z -= (a - 0.55) * math.tan(SPEC["dihedral"] * D2R)
+        z += (a - 0.55) * math.tan(SPEC["dihedral"] * D2R)
     return z
 
 
@@ -415,11 +415,11 @@ def build_propeller(mesh):
 
 
 CANOPY = [
-    (0.80, 0.105, 0.775), (0.70, 0.180, 0.812), (0.58, 0.245, 0.838),
-    (0.40, 0.300, 0.856), (0.10, 0.335, 0.866), (-0.30, 0.345, 0.868),
-    (-0.70, 0.342, 0.862), (-1.05, 0.335, 0.848), (-1.35, 0.320, 0.822),
-    (-1.62, 0.292, 0.780), (-1.85, 0.245, 0.712), (-2.02, 0.172, 0.622),
-    (-2.12, 0.085, 0.530),
+    (0.80, 0.105, 0.705), (0.70, 0.180, 0.742), (0.58, 0.245, 0.768),
+    (0.40, 0.300, 0.786), (0.10, 0.335, 0.796), (-0.30, 0.345, 0.798),
+    (-0.70, 0.342, 0.792), (-1.05, 0.335, 0.778), (-1.35, 0.320, 0.752),
+    (-1.62, 0.292, 0.710), (-1.85, 0.245, 0.642), (-2.02, 0.172, 0.552),
+    (-2.12, 0.085, 0.460),
 ]
 
 
@@ -436,7 +436,7 @@ def build_canopy(mesh):
         rings.append(ring)
     mesh.loft(rings, "canopy_glass", closed=True, cap_start=True, cap_end=True)
     # рамы фонаря
-    for xf in (0.40, -0.42, -1.35):
+    for xf in (0.70, 0.40, -0.42, -1.35):
         w = ztop = None
         for (xa, wa, za), (xb, wb, zb) in zip(CANOPY, CANOPY[1:]):
             if xa >= xf >= xb:
@@ -451,14 +451,17 @@ def build_canopy(mesh):
                  zbase + h * math.sin(math.pi * i / seg)) for i in range(seg + 1)]
         add_swept(mesh, path, 0.015, "canopy_frame", seg=6)
     # зеркало заднего вида и его кронштейн
-    add_tube(mesh, (0.585, 0.0, 0.862), (0.560, 0.0, 0.905), 0.020, 0.014,
+    add_tube(mesh, (0.585, 0.0, 0.762), (0.560, 0.0, 0.805), 0.020, 0.014,
              "canopy_frame", seg=8)
-    add_box(mesh, (0.552, 0.0, 0.928), (0.030, 0.145, 0.052), "mirror")
+    add_box(mesh, (0.552, 0.0, 0.828), (0.030, 0.145, 0.052), "mirror")
 
 
-FIN_LE = [(-2.92, 0.06), (-3.06, 0.30), (-3.20, 0.50), (-3.38, 0.66), (-3.60, 0.80)]
-FIN_TE = [(-3.60, 0.80), (-3.80, 0.795), (-3.96, 0.720), (-4.06, 0.560),
-          (-4.11, 0.380), (-4.13, 0.150), (-4.14, -0.02)]
+FIN_LE = [(-2.78, 0.05), (-2.71, 0.54), (-2.86, 0.64), (-2.93, 0.80),
+          (-3.01, 0.95), (-3.08, 1.10), (-3.16, 1.25), (-3.26, 1.40),
+          (-3.40, 1.52), (-3.48, 1.56)]
+FIN_TE = [(-3.62, 1.56), (-3.76, 1.43), (-3.90, 1.24), (-4.01, 1.04),
+          (-4.08, 0.84), (-4.13, 0.64), (-4.14, 0.50), (-4.14, 0.30),
+          (-4.13, 0.08)]
 FIN_HINGE = 0.62          # доля хорды до шарнира руля направления
 
 
@@ -482,7 +485,7 @@ def fin_chord(z):
 
 
 def fin_half_thick(z):
-    return lerp(0.045, 0.016, clamp((z - 0.02) / 0.78, 0.0, 1.0))
+    return lerp(0.050, 0.016, clamp((z - 0.02) / 1.54, 0.0, 1.0))
 
 
 def fin_half_thick_t(z, t, shrink_top=1.0):
@@ -505,7 +508,7 @@ def fin_section(z, t0, t1, n, shrink_top=1.0):
 
 
 def build_fin(mesh):
-    zs = [0.07, 0.16, 0.28, 0.40, 0.52, 0.63, 0.72, 0.80]
+    zs = [0.05, 0.20, 0.40, 0.60, 0.80, 1.00, 1.20, 1.35, 1.47, 1.56]
     rings = []
     for i, z in enumerate(zs):
         shrink = 0.45 if i == len(zs) - 1 else 1.0
@@ -516,7 +519,7 @@ def build_fin(mesh):
 
 
 def build_rudder(mesh):
-    zs = [0.05, 0.16, 0.28, 0.40, 0.52, 0.63, 0.72, 0.80]
+    zs = [0.08, 0.20, 0.40, 0.60, 0.80, 1.00, 1.20, 1.35, 1.47, 1.56]
     rings = []
     for i, z in enumerate(zs):
         shrink = 0.45 if i == len(zs) - 1 else 1.0
@@ -564,16 +567,19 @@ def build_aileron(mesh, side=1):
 
 TAIL = {
     "span": 1.72,
-    "le_root": -2.30, "le_tip": -2.55,
-    "chord_root": 1.72, "chord_tip": 1.28,
+    "xc_root": -3.22, "xc_tip": -3.28,
+    "chord_root": 1.84, "ell_a": 1.75,
     "hinge_root": 0.62, "hinge_tip": 0.60,   # доля хорды до шарнира руля
 }
 
 
 def tail_geom(y):
     u = clamp(abs(y) / TAIL["span"], 0.0, 1.0)
-    x_le = lerp(TAIL["le_root"], TAIL["le_tip"], u)
-    chord = lerp(TAIL["chord_root"], TAIL["chord_tip"], u)
+    a = min(abs(y), TAIL["ell_a"] - 1e-6) / TAIL["ell_a"]
+    e = math.sqrt(max(0.0, 1.0 - a * a))
+    chord = TAIL["chord_root"] * e
+    xc = lerp(TAIL["xc_root"], TAIL["xc_tip"], (1.0 - e) ** 0.9)
+    x_le = xc + chord / 2.0
     z = 0.115 + 0.020 * u
     tc = lerp(0.115, 0.078, u)
     return x_le, chord, z, tc, u
@@ -688,8 +694,9 @@ def build_details(mesh):
 
 
 def build_chin_intake(mesh):
-    # воздухозаборник карбюратора под носом (увеличенный, под Merlin 61)
-    x0, x1, r, ztop = 4.02, 4.72, 0.17, -0.33
+    # воздухозаборник карбюратора под носом: широкий «ковш» сразу за коком
+    # (как на фото NH341/MH434), под Merlin 61
+    x0, x1, r, ztop = 4.00, 4.80, 0.20, -0.31
     add_fairing(mesh, x0, x1, 0.0, r, ztop, "chin", seg=10)
     # тёмное входное окно спереди (выступает из обтекателя)
     add_plate(mesh, (x1 - 0.035, 0.0, ztop - r * 0.42),
@@ -824,9 +831,9 @@ def build_fuselage_roundel(mesh, side=1):
 
 def build_fin_flash(mesh, side=1):
     """Флажок RAF на киле: синий — белый — красный (от носка к задней кромке)."""
-    stripes = [(0.12, 0.345, "roundel_blue"), (0.345, 0.575, "roundel_white"),
-               (0.575, 0.80, "roundel_red")]
-    zs = [0.13, 0.28, 0.44, 0.60, 0.72]
+    stripes = [(0.45, 0.60, "roundel_blue"), (0.60, 0.75, "roundel_white"),
+               (0.75, 0.90, "roundel_red")]
+    zs = [0.70, 0.88, 1.06, 1.24, 1.38]
     for t0, t1, name in stripes:
         rings = []
         for z in zs:
@@ -835,8 +842,8 @@ def build_fin_flash(mesh, side=1):
             xa = x_le - t1 * chord
             xb = x_le - t0 * chord
             ht = fin_half_thick(z) + 0.008
-            if z > 0.66:
-                ht *= lerp(1.0, 0.55, clamp((z - 0.66) / 0.145, 0.0, 1.0))
+            if z > 1.30:
+                ht *= lerp(1.0, 0.55, clamp((z - 1.30) / 0.26, 0.0, 1.0))
             rings.append([(xa, ht, z), (xb, ht, z), (xb, -ht, z), (xa, -ht, z)])
         mesh.loft(rings, name, closed=True, cap_start=True, cap_end=True)
 
@@ -869,12 +876,21 @@ def camo_green_fuse(x, y):
 def paint(face):
     t = face.tag
     c = face.cen
-    if t == "fus_top":
+    if t in ("fus_top", "fus_bot"):
+        # полоса Sky (18") вокруг задней части фюзеляжа — как на ML296/NH341
+        if -2.95 <= c[0] <= -2.50:
+            return M_SPIN
+        if t == "fus_bot":
+            return M_SEA
         return M_GREEN if camo_green_fuse(c[0], c[1]) else M_OCEAN
-    if t == "fus_bot":
-        return M_SEA
     if t in ("wing_top", "tail_top", "elev_top", "ail_top",
              "cannon_fairing", "cannon_bulge"):
+        if t == "wing_top":
+            # жёлтые опознавательные полосы на передней кромке (см. фото MH434)
+            ch = wing_chord(c[1])
+            tt = (wing_le_x(c[1]) - c[0]) / ch
+            if tt < 0.10 and 0.20 < abs(c[1]) < 2.45:
+                return M_YELLOW
         return M_GREEN if camo_green_wing(c[0], c[1]) else M_OCEAN
     if t in ("wing_bot", "tail_bot", "elev_bot", "ail_bot"):
         return M_SEA
