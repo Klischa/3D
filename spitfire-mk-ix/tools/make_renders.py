@@ -122,6 +122,7 @@ def main():
     jobs = [
         ("01_hero.png", "persp", (1600, 980), 32.0, None, None, {}),
         ("02_side.png", "side", (1500, 820), 32.0, None, None, {}),
+        ("09_side_r.png", "side_r", (1500, 820), 32.0, None, None, {}),
         ("03_top.png", "top", (1400, 860), 32.0, None, None, {}),
         ("04_front.png", "front", (1400, 820), 32.0, None, None, {}),
         ("05_bottom.png", "bottom", (1400, 860), 32.0, None, None, {}),
