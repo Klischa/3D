@@ -189,6 +189,16 @@
   "roughness": 0.62,
   "alpha": 1.0
  },
+ "nav_green": {
+  "color": [
+   0.105,
+   0.431,
+   0.196
+  ],
+  "metallic": 0.0,
+  "roughness": 0.4,
+  "alpha": 1.0
+ },
  "radiator_matrix": {
   "color": [
    0.055,

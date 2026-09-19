@@ -65,6 +65,7 @@ M_RED = mat("roundel_red", (0.706, 0.129, 0.149), roughness=0.62)
 M_WHITE = mat("roundel_white", (0.918, 0.914, 0.878), roughness=0.62)
 M_BLUE = mat("roundel_blue", (0.129, 0.259, 0.475), roughness=0.62)
 M_YELLOW = mat("roundel_yellow", (0.878, 0.718, 0.176), roughness=0.62)
+M_NAVGRN = mat("nav_green", (0.105, 0.431, 0.196), roughness=0.40)
 M_MATRIX = mat("radiator_matrix", (0.055, 0.058, 0.061), roughness=0.90)
 
 
@@ -78,7 +79,7 @@ SPEC = {
     "wing_area": 22.48,   # м², площадь крыла
     "c_root": 2.56,       # м, хорда в корне (центр эллипса крыла)
     "dihedral": 6.0,      # град, поперечное V
-    "incidence": 2.5,     # град, угол установки в корне
+    "incidence": 2.0,     # град, угол установки в корне (DCS: 2.0/−0.5)
     "prop_dia": 3.28,     # м, диаметр четырёхлопастного винта Rotol (10'9\")
     "prop_blades": 4,
 }
@@ -92,7 +93,7 @@ X_LE = 1.83
 Y_TIP = 5.615
 Z_WING_ROOT = -0.50
 GEAR_PIVOT = (0.58, 0.70)
-GEAR_DOWN = (-0.05, 0.86, -1.55)
+GEAR_DOWN = (-0.05, 0.86, -1.615)
 GEAR_UP = (0.42, 0.70, -0.60)
 X_PROP = 5.10
 SUPERE = 2.4   # показатель суперэллипса сечения фюзеляжа (плоская «палуба»)
@@ -193,7 +194,7 @@ def wing_tc(y):
 
 
 def wing_inc(y):
-    return lerp(SPEC["incidence"], 1.0, clamp(abs(y) / 5.6, 0.0, 1.0))
+    return lerp(SPEC["incidence"], -0.5, clamp(abs(y) / 5.6, 0.0, 1.0))
 
 
 def naca_thickness(t, tc):
@@ -529,18 +530,21 @@ def build_rudder(mesh):
               cap_tag="rud_left")
 
 
-WING_HINGE_IN = 1.90    # где начинается элерон по размаху
-WING_HINGE_T = 0.68     # доля хорды до шарнира элерона
+FLAP_IN = 0.35          # закрылок: начало (у борта фюзеляжа)
+FLAP_OUT = 2.14         # стык закрылок/элерон (чертёж, s=2.14)
+AIL_OUT = 4.87          # элерон: конец (чертёж, s=4.87)
+FLAP_HINGE_T = 0.85     # шарнир закрылка (S=1.34 м² vs 1.45 по DCS)
+WING_HINGE_T = 0.82     # шарнир элерона (S=1.82 м² vs 1.76 по DCS)
 
 
 def wing_hinge_t(y):
-    u = clamp((abs(y) - WING_HINGE_IN) / 0.40, 0.0, 1.0)
-    return lerp(1.0, WING_HINGE_T, u)
+    u = clamp((abs(y) - 2.00) / 0.28, 0.0, 1.0)
+    return lerp(FLAP_HINGE_T, WING_HINGE_T, u)
 
 
 def build_wing(mesh, side=1):
-    ys = [0.0, 0.5, 1.0, 1.6, 2.2, 2.8, 3.4, 4.0, 4.6, 5.0,
-          5.2, 5.35, 5.47, 5.56, 5.615]
+    ys = [0.0, 0.5, 1.0, 1.6, 2.0, 2.14, 2.28, 2.8, 3.4, 4.0, 4.6,
+          5.0, 5.2, 5.35, 5.47, 5.56, 5.615]
     rings = []
     for y in ys:
         sec = airfoil_range(wing_le_x(y), wing_chord(y), wing_zref(y),
@@ -553,7 +557,7 @@ def build_wing(mesh, side=1):
 
 
 def build_aileron(mesh, side=1):
-    ys = [1.98, 2.30, 2.80, 3.40, 4.00, 4.60, 5.00, 5.20, 5.35, 5.47, 5.56, 5.615]
+    ys = [2.14, 2.50, 3.00, 3.50, 4.00, 4.50, 4.87]
     rings = []
     for y in ys:
         t0 = min(wing_hinge_t(y) - 0.012, 0.97)
@@ -565,11 +569,25 @@ def build_aileron(mesh, side=1):
               cap_tag="ail_top")
 
 
+def build_flap(mesh, side=1):
+    ys = [0.35, 0.70, 1.10, 1.50, 1.85, 2.14]
+    rings = []
+    for y in ys:
+        t0 = FLAP_HINGE_T - 0.012
+        sec = airfoil_range(wing_le_x(y), wing_chord(y), wing_zref(y),
+                            wing_tc(y) * 0.55, wing_inc(y), 0.025, t0, 1.0, n=10)
+        rings.append([(px, side * y, pz) for (px, pz) in sec])
+    half = len(rings[0]) // 2
+    jtags = ["ail_top" if j < half else "ail_bot" for j in range(len(rings[0]))]
+    mesh.loft(rings, jtags, closed=True, cap_start=True, cap_end=True,
+              cap_tag="ail_top")
+
+
 TAIL = {
-    "span": 1.72,
-    "xc_root": -3.22, "xc_tip": -3.28,
-    "chord_root": 1.84, "ell_a": 1.75,
-    "hinge_root": 0.62, "hinge_tip": 0.60,   # доля хорды до шарнира руля
+    "span": 1.61,      # размах 3.22 м (чертёж 3.23, DCS 3.20)
+    "xc_root": -3.53, "xc_tip": -3.60,
+    "chord_root": 1.22, "ell_a": 1.66,   # хорда max 1.22 (DCS 4 ft)
+    "hinge_root": 0.60, "hinge_tip": 0.60,   # доля хорды до шарнира руля
 }
 
 
@@ -586,12 +604,12 @@ def tail_geom(y):
 
 
 def build_tailplane(mesh, side=1):
-    ys = [0.0, 0.35, 0.70, 1.05, 1.35, 1.58, 1.72]
+    ys = [0.0, 0.32, 0.64, 0.96, 1.24, 1.45, 1.61]
     rings = []
     for y in ys:
         x_le, chord, z, tc, u = tail_geom(y)
         t1 = lerp(TAIL["hinge_root"], TAIL["hinge_tip"], u)
-        sec = airfoil_range(x_le, chord, z, tc, -1.2, 0.0, 0.0, t1, n=7)
+        sec = airfoil_range(x_le, chord, z, tc, 0.0, 0.0, 0.0, t1, n=7)
         rings.append([(px, side * y, pz) for (px, pz) in sec])
     jtags = ["tail_top" if j < 8 else "tail_bot" for j in range(len(rings[0]))]
     mesh.loft(rings, jtags, closed=True, cap_start=True, cap_end=True,
@@ -599,16 +617,24 @@ def build_tailplane(mesh, side=1):
 
 
 def build_elevator(mesh, side=1):
-    ys = [0.10, 0.45, 0.80, 1.12, 1.40, 1.60, 1.72]
+    ys = [0.10, 0.42, 0.74, 1.06, 1.32, 1.50, 1.61]
     rings = []
     for y in ys:
         x_le, chord, z, tc, u = tail_geom(y)
         t0 = lerp(TAIL["hinge_root"], TAIL["hinge_tip"], u) - 0.012
-        sec = airfoil_range(x_le, chord, z, tc, -1.2, 0.0, t0, 1.0, n=8)
+        sec = airfoil_range(x_le, chord, z, tc, 0.0, 0.0, t0, 1.0, n=8)
         rings.append([(px, side * y, pz) for (px, pz) in sec])
     jtags = ["elev_top" if j < 8 else "elev_bot" for j in range(len(rings[0]))]
     mesh.loft(rings, jtags, closed=True, cap_start=True, cap_end=True,
               cap_tag="elev_top")
+
+
+def build_trim_tabs(mesh, side=1):
+    x_le, chord, z, tc, u = tail_geom(0.75)
+    xte = x_le - chord
+    add_plate(mesh, (xte + 0.09, side * 0.60, z - 0.008),
+              (xte + 0.09, side * 0.90, z - 0.008),
+              (1.0, 0.0, 0.0), 0.09, (0.0, 0.0, 1.0), 0.003, "elev_bot")
 
 
 def build_main_gear(mesh, side=1, extended=True):
@@ -618,27 +644,27 @@ def build_main_gear(mesh, side=1, extended=True):
     ax = (src[0], side * src[1], src[2])
     knee = tuple(lerp(hip[i], ax[i], 0.46) for i in range(3))
     # амортизационная стойка: кожух сверху, шток снизу
-    add_tube(mesh, hip, knee, 0.082, 0.068, "oleo_sleeve", seg=14)
-    add_tube(mesh, knee, ax, 0.058, 0.052, "gear_leg", seg=14)
+    add_tube(mesh, hip, knee, 0.052, 0.046, "oleo_sleeve", seg=14)
+    add_tube(mesh, knee, ax, 0.038, 0.034, "gear_leg", seg=14)
     # подкос из ниши крыла
     add_tube(mesh, (hip[0] + 0.30, hip[1] - side * 0.03, hip[2] + 0.05),
              (knee[0] + 0.05, knee[1] + side * 0.03, knee[2] - 0.03),
-             0.028, 0.022, "gear_link", seg=8)
+             0.020, 0.016, "gear_link", seg=8)
     # тормозная магистраль
     add_tube(mesh, (hip[0] - 0.09, hip[1] + side * 0.04, hip[2] - 0.02),
              (ax[0] - 0.03, ax[1] + side * 0.08, ax[2] + 0.19), 0.015, 0.012,
              "gear_link", seg=6)
     # колесо (профиль с округлым протектором)
-    wprof = [(0.00, 0.250), (0.09, 0.345), (0.30, 0.372), (0.50, 0.375),
-             (0.70, 0.372), (0.91, 0.345), (1.00, 0.250)]
-    add_tube(mesh, (ax[0], ax[1] - side * 0.082, ax[2]),
-             (ax[0], ax[1] + side * 0.082, ax[2]), 0.375, stations=wprof,
+    wprof = [(0.00, 0.207), (0.09, 0.285), (0.30, 0.307), (0.50, 0.310),
+             (0.70, 0.307), (0.91, 0.285), (1.00, 0.207)]
+    add_tube(mesh, (ax[0], ax[1] - side * 0.090, ax[2]),
+             (ax[0], ax[1] + side * 0.090, ax[2]), 0.310, stations=wprof,
              tag="tyre", seg=24)
-    add_tube(mesh, (ax[0], ax[1] - side * 0.072, ax[2]),
-             (ax[0], ax[1] + side * 0.072, ax[2]), 0.205, 0.205,
+    add_tube(mesh, (ax[0], ax[1] - side * 0.080, ax[2]),
+             (ax[0], ax[1] + side * 0.080, ax[2]), 0.170, 0.170,
              "wheel_hub", seg=20)
-    add_tube(mesh, (ax[0], ax[1] - side * 0.120, ax[2]),
-             (ax[0], ax[1] + side * 0.120, ax[2]), 0.075, 0.075, "wheel_hub",
+    add_tube(mesh, (ax[0], ax[1] - side * 0.100, ax[2]),
+             (ax[0], ax[1] + side * 0.100, ax[2]), 0.075, 0.075, "wheel_hub",
              seg=10)
     # щиток ниши шасси — вертикальная панель вдоль стойки
     ydoor = hip[1] + side * 0.150
@@ -649,11 +675,11 @@ def build_main_gear(mesh, side=1, extended=True):
 
 def build_tailwheel(mesh):
     z0 = fus_zc(-3.60) - fus_rz(-3.60) + 0.02
-    add_tube(mesh, (-3.62, 0.0, z0), (-3.58, 0.0, -0.44), 0.036, 0.028,
+    add_tube(mesh, (-3.62, 0.0, z0), (-3.58, 0.0, -0.44), 0.030, 0.024,
              "gear_leg", seg=8)
-    add_tube(mesh, (-3.58, -0.055, -0.50), (-3.58, 0.055, -0.50), 0.115, 0.115,
+    add_tube(mesh, (-3.58, -0.060, -0.50), (-3.58, 0.060, -0.50), 0.130, 0.130,
              "tyre", seg=14)
-    add_tube(mesh, (-3.58, -0.065, -0.50), (-3.58, 0.065, -0.50), 0.055, 0.055,
+    add_tube(mesh, (-3.58, -0.070, -0.50), (-3.58, 0.070, -0.50), 0.062, 0.062,
              "wheel_hub", seg=10)
 
 
@@ -661,7 +687,7 @@ def build_details(mesh):
     # антенная мачта
     xm = -0.95
     add_tube(mesh, (xm, 0.0, fus_top_z(xm, 0.0) - 0.04),
-             (xm - 0.30, 0.0, fus_top_z(xm - 0.30, 0.0) + 0.19), 0.036, 0.014,
+             (xm - 0.30, 0.0, fus_top_z(xm - 0.30, 0.0) + 0.19), 0.022, 0.012,
              "canopy_frame", seg=8)
     # выхлопные патрубки Merlin 61: 6 на борт, эжекторные, увеличенные
     for side in (1, -1):
@@ -669,7 +695,7 @@ def build_details(mesh):
             x = 3.82 - k * 0.108
             p0 = fus_point(x, side * 0.62 * math.pi)
             p1 = v_add(p0, (0.0, side * 0.095, -0.045))
-            add_tube(mesh, (p0[0] + 0.045, p0[1], p0[2]), p1, 0.060, 0.048,
+            add_tube(mesh, (p0[0] + 0.045, p0[1], p0[2]), p1, 0.035, 0.030,
                      "exhaust", seg=8)
     # крыло типа C (Mk IXc): 1 × Hispano 20 мм + 2 × Browning .303 на консоль
     for side in (1, -1):
@@ -678,7 +704,7 @@ def build_details(mesh):
         xc = wing_le_x(yc)
         zc = wing_zref(yc) - 0.01
         add_tube(mesh, (xc - 1.10, side * yc, zc), (xc + 0.52, side * yc, zc),
-                 0.042, 0.030, "gun", seg=10)
+                 0.016, 0.012, "gun", seg=10)
         # обтекатель ствола у передней кромки + выпуклость барабана сверху
         add_tube(mesh, (xc - 0.28, side * yc, zc), (xc + 0.16, side * yc, zc),
                  0.072, 0.052, "cannon_fairing", seg=10)
@@ -690,7 +716,45 @@ def build_details(mesh):
             xm = wing_le_x(y) + 0.12 - 0.012 * k
             z = wing_zref(y) - 0.01
             add_tube(mesh, (xm - 0.95, side * y, z), (xm, side * y, z),
-                     0.030, 0.022, "gun", seg=8)
+                     0.014, 0.010, "gun", seg=8)
+
+
+def build_cockpit(mesh):
+    # видимое через фонарь: кресло, ручка, приборная доска, прицел GM2
+    add_box(mesh, (-0.55, 0.0, -0.10), (0.42, 0.40, 0.09), "canopy_frame")
+    add_box(mesh, (-0.78, 0.0, 0.45), (0.10, 0.38, 0.40), "canopy_frame")
+    add_box(mesh, (-0.86, 0.0, 0.50), (0.14, 0.22, 0.16), "canopy_frame")
+    add_tube(mesh, (-0.08, 0.0, -0.05), (0.06, 0.0, 0.50), 0.022, 0.018,
+             "gun", seg=8)
+    add_box(mesh, (0.07, 0.0, 0.56), (0.05, 0.05, 0.12), "gun")
+    add_plate(mesh, (0.42, 0.0, 0.35), (0.42, 0.0, 0.65), (0.0, 1.0, 0.0),
+              0.25, (1.0, 0.0, 0.0), 0.015, "gun")
+    add_box(mesh, (0.62, 0.0, 0.70), (0.16, 0.09, 0.10), "gun")
+    add_plate(mesh, (0.55, 0.0, 0.69), (0.55, 0.0, 0.765), (0.0, 1.0, 0.0),
+              0.05, (1.0, 0.0, 0.0), 0.004, "canopy_glass")
+
+
+def build_small_details(mesh):
+    # ПВД под портовой (+y) консолью
+    yp = 3.70
+    xp = wing_le_x(yp) - 0.45
+    zt = wing_surface_z(xp, yp, lower=True)
+    add_tube(mesh, (xp, yp, zt + 0.02), (xp, yp, zt - 0.18), 0.012, 0.010,
+             "gun", seg=6)
+    add_tube(mesh, (xp, yp, zt - 0.18), (xp + 0.28, yp, zt - 0.18), 0.010,
+             0.008, "gun", seg=6)
+    # заливные горловины топливных баков сверху
+    for side in (1, -1):
+        xc = wing_le_x(0.75) - 0.50
+        zc = wing_surface_z(xc, 0.75)
+        add_tube(mesh, (xc, side * 0.75, zc - 0.005),
+                 (xc, side * 0.75, zc + 0.010), 0.055, 0.055, "gun", seg=12)
+    # бортовые огни: красный (порт), зелёный (старборд), белый (хвост)
+    for side, tag in ((1, "roundel_red"), (-1, "nav_green")):
+        xl = wing_le_x(5.58) - 0.20
+        add_box(mesh, (xl, side * 5.585, wing_zref(5.58)), (0.07, 0.04, 0.03),
+                tag)
+    add_box(mesh, (-4.11, 0.0, 1.00), (0.06, 0.04, 0.04), "roundel_white")
 
 
 def build_chin_intake(mesh):
@@ -708,7 +772,7 @@ def build_chin_intake(mesh):
 def build_radiators(mesh):
     # Mk IX: интеркулер наддува — левый борт, гликолевый радиатор — правый;
     # оба увеличены относительно Mk I
-    spec = [(+1, 0.50, 1.02, 0.620, 0.255), (-1, -0.46, 0.50, 0.740, 0.300)]
+    spec = [(+1, 0.45, 1.00, 1.550, 0.255), (-1, 0.25, 1.05, 1.500, 0.300)]
     for side, x0, x1, y_c, r in spec:
         y = side * y_c
         rings = []
@@ -927,6 +991,8 @@ def paint(face):
         return M_MATRIX
     if t in ("roundel_red", "roundel_white", "roundel_blue", "roundel_yellow"):
         return t
+    if t == "nav_green":
+        return "nav_green"
     raise ValueError("нет материала для тега %r" % t)
 
 
@@ -944,8 +1010,10 @@ def build():
     m = mesh.mark()
     build_wing(mesh, +1)
     build_aileron(mesh, +1)
+    build_flap(mesh, +1)
     build_tailplane(mesh, +1)
     build_elevator(mesh, +1)
+    build_trim_tabs(mesh, +1)
     build_main_gear(mesh, +1)
     build_wing_roundel(mesh, +1, lower=False)
     build_wing_roundel(mesh, +1, lower=True)
@@ -958,6 +1026,8 @@ def build():
     build_radiators(mesh)
     build_chin_intake(mesh)
     build_tailwheel(mesh)
+    build_cockpit(mesh)
+    build_small_details(mesh)
     return mesh
 
 
