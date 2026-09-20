@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spitfire Mk IX — проверка: нос, хвост, кабина</title>
+<style>
+  :root { --panel: rgba(12,16,22,.84); --line: rgba(255,255,255,.10); --text:#e8ecf1; --muted:#93a0b1; --accent:#c9a227; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; overflow:hidden; background:#0a0d12; }
+  body { font:13px/1.45 -apple-system,"Segoe UI",Roboto,Arial,sans-serif; color:var(--text); }
+  #app { position:fixed; inset:0; }
+  canvas { display:block; }
+  .panel { position:fixed; background:var(--panel); border:1px solid var(--line); border-radius:12px;
+           backdrop-filter: blur(10px); padding:12px 14px; box-shadow:0 12px 40px rgba(0,0,0,.45); }
+  #title { top:14px; left:14px; max-width:330px; }
+  #title h1 { margin:0 0 2px; font-size:15px; }
+  #title .sub { color:var(--muted); font-size:12px; }
+  .legend { margin-top:8px; font-size:12px; color:var(--muted); }
+  .legend i { display:inline-block; width:12px; height:12px; border-radius:3px; margin-right:8px;
+              vertical-align:-2px; border:1px solid rgba(255,255,255,.25); }
+  #controls { top:14px; right:14px; width:250px; }
+  #controls h2 { margin:0 0 8px; font-size:11px; text-transform:uppercase; letter-spacing:.12em;
+                 color:var(--muted); font-weight:600; }
+  .row { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+  button { flex:1 1 auto; min-width:64px; padding:6px 8px; cursor:pointer; color:var(--text);
+           background:rgba(255,255,255,.05); border:1px solid var(--line); border-radius:8px;
+           font-size:12px; transition: background .15s, border-color .15s; }
+  button:hover { background:rgba(255,255,255,.12); }
+  button.on { background:rgba(201,162,39,.22); border-color:rgba(201,162,39,.65); color:#ffe9a8; }
+  #hint { bottom:14px; left:14px; color:var(--muted); font-size:12px; }
+  #hint b { color:var(--text); }
+  .tag { position:fixed; padding:4px 10px; border-radius:8px; background:rgba(12,16,22,.86);
+         border:1px solid var(--line); color:#ffe9a8; font-size:13px; font-weight:600; pointer-events:none;
+         transform:translate(-50%,-50%); display:none; }
+  #loader { position:fixed; inset:0; display:grid; place-items:center; background:#0a0d12;
+            color:var(--muted); transition:opacity .4s; z-index:10; }
+  #loader.done { opacity:0; pointer-events:none; }
+  .bar { width:190px; height:3px; background:rgba(255,255,255,.12); border-radius:3px; overflow:hidden; margin-top:10px; }
+  .bar i { display:block; height:100%; width:0; background:var(--accent); transition:width .2s; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="tagNose" class="tag">НОС</div>
+<div id="tagTail" class="tag">ХВОСТ</div>
+<div id="loader"><div style="text-align:center">Загрузка модели…<div class="bar"><i id="bar"></i></div></div></div>
+
+<div class="panel" id="title">
+  <h1>Supermarine Spitfire Mk&nbsp;IX</h1>
+  <div class="sub">Файл <b>models/spitfire.glb</b> — тот самый, из которого делаются obj/stl для печати.<br>
+  Никаких отражений, никаких поворотов: как в файле, так и на экране.</div>
+  <div class="legend">
+    <div><i style="background:#d81f26"></i>двигатель, капот, винт</div>
+    <div><i style="background:#19c37d"></i>кабина, фонарь</div>
+    <div><i style="background:#2f6fed"></i>крыло</div>
+  </div>
+</div>
+
+<div class="panel" id="controls">
+  <h2>Вид</h2>
+  <div class="row">
+    <button data-cam="persp" class="on">3/4</button>
+    <button data-cam="sideR">Профиль: нос вправо</button>
+  </div>
+  <div class="row">
+    <button data-cam="sideL">Профиль: нос влево</button>
+    <button data-cam="top">Сверху</button>
+  </div>
+  <div class="row">
+    <button data-cam="front">Спереди</button>
+    <button data-cam="rear">Сзади</button>
+  </div>
+  <h2>Подсказки</h2>
+  <div class="row">
+    <button id="paint" class="on">Подсветить части</button>
+    <button id="labels" class="on">Подписи</button>
+  </div>
+</div>
+<div class="panel" id="hint"><b>ЛКМ</b> — поворот · <b>Колесо</b> — зум · <b>ПКМ</b> — сдвиг</div>
+
+<script type="importmap">
+{ "imports": { "three": "../spitfire/viewer/vendor/three.module.js",
+               "three/addons/": "../spitfire/viewer/vendor/jsm/" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const app = document.getElementById('app');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+app.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x141a22);
+
+const camera = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 0.1, 400);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.07;
+controls.minDistance = 3;
+controls.maxDistance = 60;
+controls.target.set(0.58, 0.0, 0.0);
+
+scene.add(new THREE.HemisphereLight(0xdfe9ff, 0x30302a, 1.0));
+const key = new THREE.DirectionalLight(0xfff2dd, 2.2); key.position.set(8, 12, 6); scene.add(key);
+const fill = new THREE.DirectionalLight(0x9fc4ff, 0.6); fill.position.set(-8, 5, -7); scene.add(fill);
+const rim = new THREE.DirectionalLight(0xffd9a0, 0.6); rim.position.set(-4, 2.5, 9); scene.add(rim);
+
+const grid = new THREE.GridHelper(60, 60, 0x2f3742, 0x222932);
+grid.position.set(0.58, -1.94, 0);
+scene.add(grid);
+
+// модель в файле — ось X = продольная (X+ в сторону носа), Z = вверх
+const MODEL = { noseX: 5.31, tailX: -4.14, nosePoint: [5.31, 0, 0], tailPoint: [-4.14, 0, 0.62] };
+const ship = new THREE.Group();
+ship.rotation.x = -Math.PI / 2;          // Z-up (файл) -> Y-up (сцена)
+scene.add(ship);
+
+let model = null;
+const painted = [];                       // [{attr, base:Float32Array, side:Uint8Array}]
+const rays = [];                          // цветные указатели вдоль оси
+
+function classify(x, y, z) {
+  if (x > 1.90) return 0;                                   // двигатель / винт / капот
+  if (x > -1.30 && x < 0.88 && z > 0.40 && Math.abs(y) < 0.42) return 1;   // кабина
+  if (Math.abs(y) > 0.62 && x > -0.60 && x < 1.95) return 2;               // крыло
+  return -1;
+}
+const GROUP_COLOR = [new THREE.Color(0xd81f26), new THREE.Color(0x19c37d), new THREE.Color(0x2f6fed)];
+const WHITE = new THREE.Color(0xffffff);
+
+function makeLabel(text, color) {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 128;
+  const g = c.getContext('2d');
+  g.fillStyle = 'rgba(10,13,18,0.85)';
+  g.fillRect(8, 28, 240, 72);
+  g.strokeStyle = color; g.lineWidth = 4; g.strokeRect(8, 28, 240, 72);
+  g.fillStyle = color; g.font = 'bold 56px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(text, 128, 66);
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true }));
+  sp.scale.set(2.6, 1.3, 1);
+  return sp;
+}
+
+const labelNose = makeLabel('НОС', '#ffd479');
+labelNose.position.set(MODEL.noseX + 1.6, 0.4, 0);
+const labelTail = makeLabel('ХВОСТ', '#8fd6ff');
+labelTail.position.set(MODEL.tailX - 1.7, 0.4, 0.6);
+
+const arrowNose = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(MODEL.noseX + 0.2, 0.4, 0),
+                                        1.3, 0xffd479, 0.45, 0.28);
+const arrowTail = new THREE.ArrowHelper(new THREE.Vector3(-1, 0, 0), new THREE.Vector3(MODEL.tailX - 0.2, 0.4, 0.6),
+                                        1.3, 0x8fd6ff, 0.45, 0.28);
+scene.add(labelNose, labelTail, arrowNose, arrowTail);
+
+new GLTFLoader().load('./models/spitfire.glb', (gltf) => {
+  model = gltf.scene;
+  model.traverse((o) => {
+    if (!o.isMesh) return;
+    const geo = o.geometry;
+    const pos = geo.getAttribute('position');
+    const col = new Float32Array(pos.count * 3);
+    const side = new Int8Array(pos.count);
+    for (let i = 0; i < pos.count; i++) {
+      const s = classify(pos.getX(i), pos.getY(i), pos.getZ(i));
+      side[i] = s;
+      col[i * 3] = 1; col[i * 3 + 1] = 1; col[i * 3 + 2] = 1;
+    }
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    const m = o.material.clone();
+    m.vertexColors = true;
+    m.side = THREE.DoubleSide;
+    o.material = m;
+    painted.push({ attr: geo.getAttribute('color'), side: side, mat: m });
+    if (Array.isArray(o.material)) o.material.forEach((mm) => { mm.vertexColors = true; });
+  });
+  ship.add(model);
+  applyPaint(true);
+  document.getElementById('loader').classList.add('done');
+}, (e) => {
+  if (e.total) document.getElementById('bar').style.width = (100 * e.loaded / e.total) + '%';
+}, (err) => {
+  document.getElementById('loader').innerHTML = '<div style="color:#ffb3b3">Не удалось загрузить models/spitfire.glb</div>';
+  console.error(err);
+});
+
+let paintOn = true;
+function applyPaint(on) {
+  paintOn = on;
+  for (const p of painted) {
+    const a = p.attr;
+    for (let i = 0; i < p.side.length; i++) {
+      const s = p.side[i];
+      const c = (on && s >= 0) ? GROUP_COLOR[s] : WHITE;
+      a.setXYZ(i, c.r, c.g, c.b);
+    }
+    a.needsUpdate = true;
+    p.mat.vertexColors = true;
+  }
+  document.getElementById('paint').classList.toggle('on', on);
+}
+
+const VIEWS = {
+  persp: { pos: [9.0, 4.6, 9.5], up: [0, 1, 0] },
+  sideR: { pos: [0.58, 1.5, 15.5], up: [0, 1, 0] },   // правый борт: нос вправо, как на чертеже
+  sideL: { pos: [0.58, 1.5, -15.5], up: [0, 1, 0] },
+  top:   { pos: [0.58, 16.0, 0.001], up: [1, 0, 0] },  // нос вверх
+  front: { pos: [16.0, 1.2, 0.0], up: [0, 1, 0] },
+  rear:  { pos: [-15.0, 1.6, 0.0], up: [0, 1, 0] }
+};
+let currentView = 'persp';
+function setView(name) {
+  const v = VIEWS[name];
+  if (!v) return;
+  currentView = name;
+  camera.up.set(v.up[0], v.up[1], v.up[2]);
+  camera.position.set(v.pos[0], v.pos[1], v.pos[2]);
+  controls.target.set(0.58, 0.0, 0.0);
+  controls.update();
+  document.querySelectorAll('[data-cam]').forEach((b) => b.classList.toggle('on', b.dataset.cam === name));
+  showTags(name);
+}
+document.querySelectorAll('[data-cam]').forEach((b) => b.addEventListener('click', () => setView(b.dataset.cam)));
+document.getElementById('paint').addEventListener('click', () => applyPaint(!paintOn));
+document.getElementById('labels').addEventListener('click', (e) => {
+  const on = !e.target.classList.contains('on');
+  e.target.classList.toggle('on', on);
+  labelNose.visible = on; labelTail.visible = on; arrowNose.visible = on; arrowTail.visible = on;
+});
+
+const tagNose = document.getElementById('tagNose');
+const tagTail = document.getElementById('tagTail');
+function showTags(name) {
+  const show = (name === 'sideR' || name === 'sideL' || name === 'top');
+  tagNose.style.display = show ? 'block' : 'none';
+  tagTail.style.display = show ? 'block' : 'none';
+}
+const v3 = new THREE.Vector3();
+function projectTag(el, x, y, z) {
+  if (el.style.display === 'none') return;
+  v3.set(x, y, z).project(camera);
+  el.style.left = ((v3.x * 0.5 + 0.5) * innerWidth) + 'px';
+  el.style.top = ((-v3.y * 0.5 + 0.5) * innerHeight) + 'px';
+}
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+setView('persp');
+(function loop() {
+  requestAnimationFrame(loop);
+  controls.update();
+  projectTag(tagNose, MODEL.noseX + 1.0, 0.4, 0);
+  projectTag(tagTail, MODEL.tailX - 1.1, 0.4, 0.6);
+  renderer.render(scene, camera);
+})();
+</script>
+</body>
+</html>
