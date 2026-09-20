@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Supermarine Spitfire Mk IX — 3D-модель</title>
+<style>
+  :root {
+    --panel: rgba(14,18,24,.82);
+    --line: rgba(255,255,255,.10);
+    --accent: #c9a227;
+    --text: #e8ecf1;
+    --muted: #93a0b1;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0a0d12; }
+  body { font: 13px/1.45 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: var(--text); }
+  #app { position: fixed; inset: 0; }
+  canvas { display: block; }
+
+  .panel {
+    position: fixed; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; backdrop-filter: blur(10px); padding: 12px 14px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.45);
+  }
+  #title { top: 14px; left: 14px; max-width: 330px; }
+  #title h1 { margin: 0 0 2px; font-size: 15px; letter-spacing: .2px; }
+  #title .sub { color: var(--muted); font-size: 12px; }
+  #title table { border-collapse: collapse; margin-top: 8px; font-size: 12px; }
+  #title td { padding: 1px 0; color: var(--muted); }
+  #title td:last-child { color: var(--text); padding-left: 12px; text-align: right; }
+
+  #controls { top: 14px; right: 14px; width: 232px; }
+  #controls h2 { margin: 0 0 8px; font-size: 11px; text-transform: uppercase;
+                 letter-spacing: .12em; color: var(--muted); font-weight: 600; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  button {
+    flex: 1 1 auto; min-width: 62px; padding: 6px 8px; cursor: pointer;
+    color: var(--text); background: rgba(255,255,255,.05);
+    border: 1px solid var(--line); border-radius: 8px; font-size: 12px;
+    transition: background .15s, border-color .15s;
+  }
+  button:hover { background: rgba(255,255,255,.12); }
+  button.on { background: rgba(201,162,39,.22); border-color: rgba(201,162,39,.65); color: #ffe9a8; }
+  #palette { bottom: 14px; right: 14px; width: 232px; max-height: 42vh; overflow: auto; }
+  #palette h2 { margin: 0 0 8px; font-size: 11px; text-transform: uppercase;
+                letter-spacing: .12em; color: var(--muted); font-weight: 600; }
+  .sw { display: flex; align-items: center; gap: 8px; padding: 2px 0; font-size: 12px; color: var(--muted); }
+  .sw i { width: 14px; height: 14px; border-radius: 4px; border: 1px solid rgba(255,255,255,.25); }
+  #hint { bottom: 14px; left: 14px; color: var(--muted); font-size: 12px; }
+  #hint b { color: var(--text); font-weight: 600; }
+  #loader { position: fixed; inset: 0; display: grid; place-items: center;
+            background: #0a0d12; color: var(--muted); transition: opacity .4s; z-index: 10; }
+  #loader.done { opacity: 0; pointer-events: none; }
+  .bar { width: 190px; height: 3px; background: rgba(255,255,255,.12); border-radius: 3px;
+         overflow: hidden; margin-top: 10px; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+  a { color: #ffd98a; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<div id="loader"><div style="text-align:center">Загрузка модели…<div class="bar"><i id="bar"></i></div></div></div>
+
+<div class="panel" id="title">
+  <h1>Supermarine Spitfire Mk&nbsp;IX</h1>
+  <div class="sub">Процедурная 3D-модель · RAF, Ocean Grey / Dark Green, 1943–44</div>
+  <table>
+    <tr><td>Размах</td><td>11,23 м</td></tr>
+    <tr><td>Длина</td><td>9,47 м</td></tr>
+    <tr><td>Площадь крыла</td><td>22,48 м²</td></tr>
+    <tr><td>Винт</td><td>Rotol, 4 лопасти, ⌀3,28 м</td></tr>
+    <tr id="stats"><td>Полигоны</td><td>—</td></tr>
+  </table>
+</div>
+
+<div class="panel" id="controls">
+  <h2>Камера</h2>
+  <div class="row">
+    <button data-cam="persp" class="on">3/4</button>
+    <button data-cam="side">Профиль</button>
+    <button data-cam="front">Спереди</button>
+  </div>
+  <div class="row">
+    <button data-cam="top">Сверху</button>
+    <button data-cam="rear">Хвост</button>
+    <button data-cam="close">Детали</button>
+  </div>
+  <h2>Отображение</h2>
+  <div class="row">
+    <button id="spin" class="on">Вращение</button>
+    <button id="frames">Каркас</button>
+  </div>
+  <div class="row">
+    <button id="light-day" class="on">День</button>
+    <button id="light-sunset">Закат</button>
+    <button id="light-studio">Студия</button>
+  </div>
+</div>
+
+<div class="panel" id="palette"><h2>Материалы</h2><div id="sw-list"></div></div>
+<div class="panel" id="hint"><b>ЛКМ</b> — поворот · <b>Колесо</b> — зум · <b>ПКМ</b> — сдвиг</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three.module.js",
+    "three/addons/": "./vendor/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const app = document.getElementById('app');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+app.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+
+// градиентный фон
+(function background() {
+  const c = document.createElement('canvas');
+  c.width = 4; c.height = 256;
+  const g = c.getContext('2d').createLinearGradient(0, 0, 0, 256);
+  g.addColorStop(0.00, '#2b3a4e');
+  g.addColorStop(0.55, '#141c26');
+  g.addColorStop(1.00, '#070a0e');
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 4, 256);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  scene.background = tex;
+})();
+
+const camera = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, 0.1, 400);
+camera.position.set(9.5, 4.6, 10.5);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.minDistance = 2.2;
+controls.maxDistance = 46;
+controls.target.set(0, 0.35, 0);
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.7;
+
+// свет
+const hemi = new THREE.HemisphereLight(0xdfe9ff, 0x30302a, 0.55);
+scene.add(hemi);
+
+const key = new THREE.DirectionalLight(0xfff2dd, 2.5);
+key.position.set(9, 13, 7);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.camera.near = 1;
+key.shadow.camera.far = 60;
+const S = 11;
+key.shadow.camera.left = -S; key.shadow.camera.right = S;
+key.shadow.camera.top = S; key.shadow.camera.bottom = -S;
+key.shadow.bias = -0.0008;
+key.shadow.normalBias = 0.02;
+scene.add(key);
+
+const fill = new THREE.DirectionalLight(0x9fc4ff, 0.55);
+fill.position.set(-8, 5, -7);
+scene.add(fill);
+
+const rim = new THREE.DirectionalLight(0xffd9a0, 0.7);
+rim.position.set(-4, 2.5, 9);
+scene.add(rim);
+
+const pmrem = new THREE.PMREMGenerator(renderer);
+const env = pmrem.fromScene(new RoomEnvironment(), 0.05);
+scene.environment = env.texture;
+
+// земля
+const ground = new THREE.Mesh(
+  new THREE.CircleGeometry(60, 64),
+  new THREE.MeshStandardMaterial({ color: 0x2a2f36, roughness: 0.95, metalness: 0.0 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = -1.94;
+ground.receiveShadow = true;
+scene.add(ground);
+
+const grid = new THREE.GridHelper(60, 60, 0x2f3742, 0x222932);
+grid.position.y = -1.938;
+grid.material.transparent = true;
+grid.material.opacity = 0.55;
+scene.add(grid);
+
+// ---- загрузка модели ------------------------------------------------------
+const loader = new GLTFLoader();
+const root = new THREE.Group();
+scene.add(root);
+let ship = null, frames = false, tri = 0;
+
+const bar = document.getElementById('bar');
+loader.load('./models/spitfire.glb', (gltf) => {
+  ship = gltf.scene;
+  // модель построена в осях X-вперёд / Z-вверх (правая тройка) — переводим в Y-up
+  ship.rotation.x = -Math.PI / 2;
+  ship.traverse((o) => {
+    if (o.isMesh) {
+      o.castShadow = true;
+      o.receiveShadow = true;
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      for (const m of mats) {
+        m.envMapIntensity = 0.6;
+        if (m.transparent) { m.depthWrite = false; m.side = THREE.DoubleSide; }
+      }
+      const g = o.geometry;
+      tri += g.index ? g.index.count / 3 : g.attributes.position.count / 3;
+    }
+  });
+  root.add(ship);
+
+  document.querySelector('#stats td:last-child').textContent =
+    Math.round(tri).toLocaleString('ru-RU') + ' тр.';
+  listMaterials(ship);
+  document.getElementById('loader').classList.add('done');
+}, (e) => {
+  if (e.total) bar.style.width = (e.loaded / e.total * 100).toFixed(0) + '%';
+}, (err) => {
+  document.getElementById('loader').textContent = 'Не удалось загрузить models/spitfire.glb';
+  console.error(err);
+});
+
+// ---- палитра материалов ---------------------------------------------------
+function listMaterials(obj) {
+  const seen = new Map();
+  obj.traverse((o) => {
+    if (!o.isMesh) return;
+    for (const m of (Array.isArray(o.material) ? o.material : [o.material])) {
+      if (!seen.has(m.name)) seen.set(m.name, m);
+    }
+  });
+  const box = document.getElementById('sw-list');
+  box.innerHTML = '';
+  const names = {
+    raf_dark_green: 'Тёмно-зелёный (камуфляж)',
+    raf_ocean_grey: 'Серый Ocean Grey (камуфляж)',
+    raf_sea_grey: 'Серый Sea Grey (низ)',
+    sky_spinner: 'Обтекатель винта',
+    canopy_glass: 'Фонарь кабины (стекло)',
+    canopy_frame: 'Рамы фонаря',
+    prop_blade: 'Лопасти винта',
+    prop_tip_yellow: 'Законцовки лопастей',
+    exhaust_steel: 'Выхлопные патрубки',
+    exhaust_soot: 'Закопчённый металл',
+    gunmetal: 'Вооружение (Hispano, Browning)',
+    metal_strut: 'Стойки шасси',
+    tyre_rubber: 'Пневматики',
+    wheel_hub: 'Колёсные диски',
+    rubber: 'Резина',
+    roundel_red: 'Знаки RAF — красный',
+    roundel_white: 'Знаки RAF — белый',
+    roundel_blue: 'Знаки RAF — синий',
+    roundel_yellow: 'Знаки RAF — жёлтый (борт)',
+    matte_black: 'Противобликовая полоса',
+    radiator_matrix: 'Решётка радиатора'
+  };
+  for (const [name, m] of seen) {
+    const el = document.createElement('div');
+    el.className = 'sw';
+    const sw = document.createElement('i');
+    sw.style.background = '#' + m.color.getHexString();
+    if (m.transparent) sw.style.opacity = 0.45;
+    el.append(sw, document.createTextNode(names[name] || name));
+    box.append(el);
+  }
+}
+
+// ---- кнопки ---------------------------------------------------------------
+const CAM = {
+  persp: { p: [9.5, 4.6, 10.5], t: [0, 0.35, 0] },
+  side:  { p: [0.2, 0.9, 17.5], t: [0, 0.3, 0] },
+  front: { p: [17.5, 1.6, 0.2], t: [1.2, 0.2, 0] },
+  top:   { p: [0.4, 18.0, 0.1], t: [0, 0, 0] },
+  rear:  { p: [-16.5, 3.4, 5.5], t: [-2.2, 0.1, 0] },
+  close: { p: [4.2, 1.9, 4.4], t: [2.2, 0.25, 0] }
+};
+let camAnim = null;
+function goto(name) {
+  const c = CAM[name];
+  if (!c) return;
+  camAnim = {
+    from: camera.position.clone(), to: new THREE.Vector3(...c.p),
+    tf: controls.target.clone(), tt: new THREE.Vector3(...c.t), t: 0
+  };
+  controls.autoRotate = false;
+  document.querySelectorAll('[data-cam]').forEach((b) =>
+    b.classList.toggle('on', b.dataset.cam === name));
+  document.getElementById('spin').classList.remove('on');
+}
+document.querySelectorAll('[data-cam]').forEach((b) =>
+  b.addEventListener('click', () => goto(b.dataset.cam)));
+
+document.getElementById('spin').addEventListener('click', (e) => {
+  controls.autoRotate = !controls.autoRotate;
+  e.target.classList.toggle('on', controls.autoRotate);
+});
+document.getElementById('frames').addEventListener('click', (e) => {
+  frames = !frames;
+  e.target.classList.toggle('on', frames);
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    for (const m of (Array.isArray(o.material) ? o.material : [o.material])) m.wireframe = frames;
+  });
+});
+const LIGHTS = {
+  day:    { key: [9, 13, 7], kc: 0xfff2dd, ki: 2.5, hemi: 0.55, sky: 0xdfe9ff,
+            fill: 0.55, rim: 0.7, exposure: 1.05 },
+  sunset: { key: [-14, 3.2, 6], kc: 0xffb46b, ki: 3.1, hemi: 0.35, sky: 0xffd9b0,
+            fill: 0.25, rim: 0.35, exposure: 1.18 },
+  studio: { key: [6, 16, 9], kc: 0xffffff, ki: 2.2, hemi: 0.9, sky: 0xf2f5ff,
+            fill: 1.0, rim: 0.9, exposure: 0.95 }
+};
+for (const name of Object.keys(LIGHTS)) {
+  document.getElementById('light-' + name).addEventListener('click', (e) => {
+    const L = LIGHTS[name];
+    key.position.set(...L.key); key.color.setHex(L.kc); key.intensity = L.ki;
+    hemi.intensity = L.hemi; hemi.color.setHex(L.sky);
+    fill.intensity = L.fill; rim.intensity = L.rim;
+    renderer.toneMappingExposure = L.exposure;
+    document.querySelectorAll('#controls .row:last-child button').forEach((b) =>
+      b.classList.toggle('on', b === e.target));
+  });
+}
+addEventListener('keydown', (e) => {
+  const map = { '1': 'persp', '2': 'side', '3': 'front', '4': 'top', '5': 'rear', '6': 'close' };
+  if (map[e.key]) goto(map[e.key]);
+  if (e.key === ' ') { controls.autoRotate = !controls.autoRotate;
+    document.getElementById('spin').classList.toggle('on', controls.autoRotate); }
+});
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+const clock = new THREE.Clock();
+renderer.setAnimationLoop(() => {
+  const dt = clock.getDelta();
+  if (camAnim) {
+    camAnim.t = Math.min(1, camAnim.t + dt * 2.2);
+    const e = 1 - Math.pow(1 - camAnim.t, 3);
+    camera.position.lerpVectors(camAnim.from, camAnim.to, e);
+    controls.target.lerpVectors(camAnim.tf, camAnim.tt, e);
+    if (camAnim.t >= 1) camAnim = null;
+  }
+  controls.update();
+  renderer.render(scene, camera);
+});
+</script>
+</body>
+</html>
