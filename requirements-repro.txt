@@ -6,3 +6,7 @@ onnx==1.23.0
 onnxruntime==1.30.0
 scipy==1.17.1
 pytest==9.1.1
+# Test-only: gt_collector tests import cv2. Headless build pinned to the
+# combo verified with numpy 2.4.6 (newer 4.14+ wheels hit the ArrayType
+# binding bug on this stack).
+opencv-python-headless==4.10.0.84

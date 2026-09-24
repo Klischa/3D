@@ -2,8 +2,8 @@
 import warnings
 warnings.filterwarnings("ignore")
 import numpy as np
-import cv2
 import pytest
+cv2 = pytest.importorskip("cv2")  # gt_collector требует OpenCV: пропуск без него
 from scipy.spatial.transform import Rotation
 
 from gt_collector.board import board_bitmap, make_detector

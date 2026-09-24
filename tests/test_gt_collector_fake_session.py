@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+cv2 = pytest.importorskip("cv2")  # gt_collector требует OpenCV: пропуск без него
 
 from gt_collector.config import BoardSpec, SessionConfig
 from gt_collector.fake import FakeBackend, FakeConfig

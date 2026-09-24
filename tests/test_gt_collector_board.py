@@ -1,7 +1,7 @@
 """Тесты дошки: геометрия, генерация, декодирование раскладки, печатные файлы."""
 import numpy as np
-import cv2
 import pytest
+cv2 = pytest.importorskip("cv2")  # gt_collector требует OpenCV: пропуск без него
 
 from gt_collector.config import BoardSpec
 from gt_collector.board import (BASE_PPM, board_bitmap, board_corners_m,

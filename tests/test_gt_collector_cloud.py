@@ -1,6 +1,7 @@
 """Тесты формата облака ACGD и make_cloud."""
 import numpy as np
 import pytest
+cv2 = pytest.importorskip("cv2")  # gt_collector требует OpenCV: пропуск без него
 
 from gt_collector.cloud import (Cloud, load_cloud, make_cloud, pack_cloud,
                                 save_cloud, unpack_cloud)
