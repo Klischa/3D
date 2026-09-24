@@ -1,0 +1,15 @@
+# gt_collector — зависимости (Python 3.10+)
+#
+# Сборка на машине с камерой:
+#   pip install -r gt_collector/requirements.txt
+#   pip install --no-deps pyorbbecsdk2        # import-имя: pyorbbecsdk
+#                                             # (обычный install падает на evdev)
+#
+# Замечание: в opencv-python-headless 4.10–4.14 + numpy 2.x отдельным
+# вызовам detectMarkers/solvePnP свойственен баг привязки
+# (TypeError: return arrays must be of ArrayType) — обход встроен в
+# gt_collector/detectors.py; при массовых ошибках попробуйте numpy 2.2.x.
+numpy>=2.0
+scipy>=1.10
+opencv-python-headless>=4.10,<5
+pytest>=8  # только для tests/

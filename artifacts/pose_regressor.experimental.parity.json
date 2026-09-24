@@ -1,0 +1,33 @@
+{
+  "onnx_sha256": "d424d62cf80824fb669daf53bb97f3981976dca19ddee5bc8740598c8ff29369",
+  "checkpoint_sha256": "615c132f25d3ea7f256cca94a8d5334173b385975828060b531132c67e0609be",
+  "checks": [
+    {
+      "batch": 1,
+      "source_points": 32,
+      "target_points": 32,
+      "max_abs_difference": 3.5390257835388184e-08
+    },
+    {
+      "batch": 2,
+      "source_points": 64,
+      "target_points": 48,
+      "max_abs_difference": 1.043081283569336e-07
+    },
+    {
+      "batch": 1,
+      "source_points": 256,
+      "target_points": 256,
+      "max_abs_difference": 8.009374141693115e-08
+    },
+    {
+      "batch": 1,
+      "source_points": 2048,
+      "target_points": 1024,
+      "max_abs_difference": 8.684583008289337e-08
+    }
+  ],
+  "opset": 18,
+  "all_passed": true,
+  "deployment_approved": false
+}

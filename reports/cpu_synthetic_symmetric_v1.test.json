@@ -1,0 +1,301 @@
+{
+  "status": "experimental_synthetic_only",
+  "real_world_validated": false,
+  "checkpoint_sha256": "615c132f25d3ea7f256cca94a8d5334173b385975828060b531132c67e0609be",
+  "checkpoint_step": 600,
+  "split": "test",
+  "scene_keys": [
+    "test:1",
+    "test:10",
+    "test:11",
+    "test:12",
+    "test:13",
+    "test:14",
+    "test:15",
+    "test:17",
+    "test:18",
+    "test:2",
+    "test:20",
+    "test:21",
+    "test:22",
+    "test:23",
+    "test:24",
+    "test:25",
+    "test:26",
+    "test:27",
+    "test:28",
+    "test:29",
+    "test:3",
+    "test:31",
+    "test:4",
+    "test:5",
+    "test:8",
+    "test:9"
+  ],
+  "pairs_per_mode": 64,
+  "points": 256,
+  "data": {
+    "kind": "procedural synthetic only",
+    "config": {
+      "seed": 20260922,
+      "points": 256,
+      "train_scenes": 128,
+      "validation_scenes": 24,
+      "test_scenes": 32,
+      "max_rotation_deg": 12.0,
+      "max_translation_m": 0.025,
+      "noise_std_m": 0.0007,
+      "partial_outlier_fraction": 0.01,
+      "identity_probability": 0.15
+    },
+    "split_namespace": {
+      "train": 101,
+      "validation": 202,
+      "test": 303
+    },
+    "generator_version": 1,
+    "real_scans_used": false,
+    "occlusion": "approximate half-space crops"
+  },
+  "metrics": {
+    "clean": {
+      "neural": {
+        "count": 64,
+        "rotation_mean_deg": 5.439361332434617,
+        "rotation_median_deg": 4.971910965714214,
+        "rotation_p95_deg": 11.410140525416159,
+        "translation_mean_mm": 50.35928134664481,
+        "translation_median_mm": 34.24408303069354,
+        "translation_p95_mm": 125.96200590133697,
+        "success_at_2deg_10mm": 0.09375
+      },
+      "centroid": {
+        "count": 64,
+        "rotation_mean_deg": 5.4872280981929045,
+        "rotation_median_deg": 4.924782010529972,
+        "rotation_p95_deg": 11.273346249178442,
+        "translation_mean_mm": 51.04052149546628,
+        "translation_median_mm": 35.92138346427933,
+        "translation_p95_mm": 127.52059172452421,
+        "success_at_2deg_10mm": 0.109375
+      },
+      "centroid_icp": {
+        "count": 64,
+        "rotation_mean_deg": 1.02488802182448e-06,
+        "rotation_median_deg": 8.537736462515939e-07,
+        "rotation_p95_deg": 2.4148365394514667e-06,
+        "translation_mean_mm": 2.142102740926749e-05,
+        "translation_median_mm": 1.967979578925524e-05,
+        "translation_p95_mm": 4.39432378097399e-05,
+        "success_at_2deg_10mm": 1.0
+      },
+      "neural_icp": {
+        "count": 64,
+        "rotation_mean_deg": 9.994480507746673e-07,
+        "rotation_median_deg": 8.537736462515939e-07,
+        "rotation_p95_deg": 2.4148365394514667e-06,
+        "translation_mean_mm": 2.0957995953110432e-05,
+        "translation_median_mm": 1.948018233206657e-05,
+        "translation_p95_mm": 4.38480785070335e-05,
+        "success_at_2deg_10mm": 1.0
+      },
+      "original_cpp_contract": {
+        "count": 64,
+        "rotation_mean_deg": 174.24446017729986,
+        "rotation_median_deg": 174.69698970485803,
+        "rotation_p95_deg": 178.94356009679427,
+        "translation_mean_mm": 2084.694291766016,
+        "translation_median_mm": 2095.4515019980176,
+        "translation_p95_mm": 2230.2973804607773,
+        "success_at_2deg_10mm": 0.0
+      }
+    },
+    "resampled": {
+      "neural": {
+        "count": 64,
+        "rotation_mean_deg": 5.450529632665307,
+        "rotation_median_deg": 4.8494803250702585,
+        "rotation_p95_deg": 11.270803153276054,
+        "translation_mean_mm": 50.82416556555838,
+        "translation_median_mm": 36.55540259204816,
+        "translation_p95_mm": 126.0196954830034,
+        "success_at_2deg_10mm": 0.09375
+      },
+      "centroid": {
+        "count": 64,
+        "rotation_mean_deg": 5.4872280981929045,
+        "rotation_median_deg": 4.924782010529972,
+        "rotation_p95_deg": 11.273346249178442,
+        "translation_mean_mm": 52.427851421043,
+        "translation_median_mm": 36.50812677891437,
+        "translation_p95_mm": 129.68970260343718,
+        "success_at_2deg_10mm": 0.09375
+      },
+      "centroid_icp": {
+        "count": 64,
+        "rotation_mean_deg": 1.7815841221372293,
+        "rotation_median_deg": 1.5981135134749254,
+        "rotation_p95_deg": 4.0888531688727054,
+        "translation_mean_mm": 15.595982258493974,
+        "translation_median_mm": 11.91507503410243,
+        "translation_p95_mm": 33.554734103078594,
+        "success_at_2deg_10mm": 0.375
+      },
+      "neural_icp": {
+        "count": 64,
+        "rotation_mean_deg": 1.6968274652543673,
+        "rotation_median_deg": 1.6202921421293437,
+        "rotation_p95_deg": 3.141640258531433,
+        "translation_mean_mm": 15.286057545612364,
+        "translation_median_mm": 12.204443757634596,
+        "translation_p95_mm": 34.94780482568464,
+        "success_at_2deg_10mm": 0.40625
+      },
+      "original_cpp_contract": {
+        "count": 64,
+        "rotation_mean_deg": 174.24171505113003,
+        "rotation_median_deg": 174.6267309186021,
+        "rotation_p95_deg": 178.9843594758905,
+        "translation_mean_mm": 2085.8657171799996,
+        "translation_median_mm": 2101.2982426970934,
+        "translation_p95_mm": 2229.346657522058,
+        "success_at_2deg_10mm": 0.0
+      }
+    },
+    "partial": {
+      "neural": {
+        "count": 64,
+        "rotation_mean_deg": 5.514755172812134,
+        "rotation_median_deg": 4.751614355751855,
+        "rotation_p95_deg": 11.082372074525342,
+        "translation_mean_mm": 51.27016686915814,
+        "translation_median_mm": 37.491044643061564,
+        "translation_p95_mm": 141.40157118387097,
+        "success_at_2deg_10mm": 0.078125
+      },
+      "centroid": {
+        "count": 64,
+        "rotation_mean_deg": 5.4872280981929045,
+        "rotation_median_deg": 4.924782010529972,
+        "rotation_p95_deg": 11.273346249178442,
+        "translation_mean_mm": 52.86576455326362,
+        "translation_median_mm": 33.62117374967199,
+        "translation_p95_mm": 141.52658208982731,
+        "success_at_2deg_10mm": 0.078125
+      },
+      "centroid_icp": {
+        "count": 64,
+        "rotation_mean_deg": 1.797648832035256,
+        "rotation_median_deg": 1.5081744407974476,
+        "rotation_p95_deg": 3.833486323628925,
+        "translation_mean_mm": 16.135554850548342,
+        "translation_median_mm": 12.828324616391884,
+        "translation_p95_mm": 41.68748898493199,
+        "success_at_2deg_10mm": 0.28125
+      },
+      "neural_icp": {
+        "count": 64,
+        "rotation_mean_deg": 1.707600331093301,
+        "rotation_median_deg": 1.4894207191039026,
+        "rotation_p95_deg": 3.749067802692384,
+        "translation_mean_mm": 15.718995780799144,
+        "translation_median_mm": 12.828324616391884,
+        "translation_p95_mm": 40.74578113012174,
+        "success_at_2deg_10mm": 0.34375
+      },
+      "original_cpp_contract": {
+        "count": 64,
+        "rotation_mean_deg": 174.37284144540416,
+        "rotation_median_deg": 174.77298229591435,
+        "rotation_p95_deg": 179.13099035754038,
+        "translation_mean_mm": 2054.206326283359,
+        "translation_median_mm": 2052.1784854992397,
+        "translation_p95_mm": 2204.67091104346,
+        "success_at_2deg_10mm": 0.0
+      }
+    },
+    "all": {
+      "neural": {
+        "count": 192,
+        "rotation_mean_deg": 5.46821537930402,
+        "rotation_median_deg": 4.862581603273643,
+        "rotation_p95_deg": 11.402901859397398,
+        "translation_mean_mm": 50.817871260453785,
+        "translation_median_mm": 36.31658757638128,
+        "translation_p95_mm": 133.18652358139775,
+        "success_at_2deg_10mm": 0.08854166666666667
+      },
+      "centroid": {
+        "count": 192,
+        "rotation_mean_deg": 5.4872280981929045,
+        "rotation_median_deg": 4.924782010529972,
+        "rotation_p95_deg": 11.273499805772474,
+        "translation_mean_mm": 52.11137915659097,
+        "translation_median_mm": 35.53503055963972,
+        "translation_p95_mm": 137.4019721697275,
+        "success_at_2deg_10mm": 0.09375
+      },
+      "centroid_icp": {
+        "count": 192,
+        "rotation_mean_deg": 1.1930779930201691,
+        "rotation_median_deg": 1.0317895378727124,
+        "rotation_p95_deg": 3.5067845456132143,
+        "translation_mean_mm": 10.577186176689908,
+        "translation_median_mm": 7.0000324740140325,
+        "translation_p95_mm": 31.326654001915443,
+        "success_at_2deg_10mm": 0.5520833333333334
+      },
+      "neural_icp": {
+        "count": 192,
+        "rotation_mean_deg": 1.1348095985985729,
+        "rotation_median_deg": 0.9763381492274472,
+        "rotation_p95_deg": 3.2291516658322705,
+        "translation_mean_mm": 10.335024761469155,
+        "translation_median_mm": 7.105907365651249,
+        "translation_p95_mm": 33.622080437012976,
+        "success_at_2deg_10mm": 0.5833333333333334
+      },
+      "original_cpp_contract": {
+        "count": 192,
+        "rotation_mean_deg": 174.286338891278,
+        "rotation_median_deg": 174.6873216629641,
+        "rotation_p95_deg": 179.0466760176446,
+        "translation_mean_mm": 2074.9221117431243,
+        "translation_median_mm": 2067.662375439691,
+        "translation_p95_mm": 2218.094149312816,
+        "success_at_2deg_10mm": 0.0
+      }
+    }
+  },
+  "identical_clouds": {
+    "count": 64,
+    "rotation_mean_deg": 1.7462701144381309e-06,
+    "rotation_median_deg": 1.2074182697257333e-06,
+    "rotation_p95_deg": 4.829673078902933e-06,
+    "translation_mean_mm": 2.9201232603453216e-05,
+    "translation_median_mm": 2.5874998537286497e-05,
+    "translation_p95_mm": 6.406246491436865e-05,
+    "success_at_2deg_10mm": 1.0
+  },
+  "quality_gates": {
+    "checks": {
+      "rotation_better_than_centroid_by_10pct": false,
+      "translation_better_than_centroid_by_10pct": false,
+      "identity_rotation_mean_below_0_5deg": true,
+      "identity_translation_mean_below_3mm": true,
+      "icp_success_not_worse_by_more_than_2pct": true
+    },
+    "synthetic_gates_passed": false,
+    "deployment_approved": false,
+    "reason": "No real held-out Astra scans with ground truth; synthetic success is not deployment validation."
+  },
+  "elapsed_seconds": 2.916022802000043,
+  "notes": [
+    "No real Astra data or real-sensor noise calibration.",
+    "All metrics are source->target translation and sign-invariant quaternion angle.",
+    "Centroid baseline: identity rotation and difference of cloud centroids.",
+    "Both ICP baselines use identical 25-iteration trimmed point-to-point ICP.",
+    "Original ONNX is interpreted exactly as current C++ code (centered inputs; txyz+qxyzw). Its training-time contract is unknown.",
+    "Do not tune on this test report; select checkpoints using validation only."
+  ]
+}

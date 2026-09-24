@@ -1,0 +1,9 @@
+{
+  "data": {"points": 32, "train_scenes": 4, "validation_scenes": 2, "test_scenes": 2},
+  "steps": 3,
+  "batch_size": 2,
+  "evaluate_every": 1,
+  "validation_pairs": 4,
+  "threads": 1,
+  "device": "cpu"
+}

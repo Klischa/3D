@@ -1,0 +1,25 @@
+{
+  "data": {
+    "seed": 20260922,
+    "points": 256,
+    "train_scenes": 128,
+    "validation_scenes": 24,
+    "test_scenes": 32,
+    "max_rotation_deg": 12.0,
+    "max_translation_m": 0.025,
+    "noise_std_m": 0.0007,
+    "partial_outlier_fraction": 0.01,
+    "identity_probability": 0.15
+  },
+  "steps": 1200,
+  "batch_size": 8,
+  "learning_rate": 0.001,
+  "encoder_lr_multiplier": 0.25,
+  "weight_decay": 0.0001,
+  "evaluate_every": 100,
+  "validation_pairs": 96,
+  "rotation_loss_scale_deg": 5.0,
+  "translation_loss_scale_m": 0.01,
+  "threads": 1,
+  "device": "cpu"
+}

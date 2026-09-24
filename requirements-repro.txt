@@ -1,0 +1,8 @@
+# Core versions used by the CPU experiment (Python 3.11).
+# Install the PyTorch CPU wheel first when that index is available.
+torch==2.5.1
+numpy==2.4.6
+onnx==1.23.0
+onnxruntime==1.30.0
+scipy==1.17.1
+pytest==9.1.1
