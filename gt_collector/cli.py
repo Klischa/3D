@@ -97,8 +97,10 @@ def cmd_selftest(args) -> int:
         fcfg = FakeConfig(duration_s=duration, fps=fps, trajectory=trajectory,
                           orbit_radius_m=args.radius, seed=args.seed,
                           board_preset=args.board)
+        # облака — не ежесекундно: round-trip ACGD проверяется по первому
+        # файлу, а полный selftest на eжесекундных облаках жрёт ~9 ГБ
         cfg = SessionConfig(board=board, duration_s=duration, warmup_frames=5,
-                            fps=fps, save_frames_every=1 if not quick else 10)
+                            fps=fps, save_frames_every=10)
         be = FakeBackend(fcfg, board)
         sess = Session(out, cfg, be)
         manifest = sess.run()

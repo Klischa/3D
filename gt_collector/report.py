@@ -3,9 +3,10 @@
 Ключевые метрики:
 * доля годных кадров и разброс флагов;
 * резидуалы Umeyama (p50/p95/max) — по-кадровая уверенность GT;
-* noise floor: на статичных участках (шаг < 2 мм и < 0.5°) дисперсия позы
-  = нижняя граница ошибки GT; если статичного участка нет — оценка по
-  самым тихим кадрам;
+* noise floor: пул кадров из статичных окон (30 кадров, весь разброс окна
+  < 5 мм и < 1° относительно среднего окна); дисперсия пула = нижняя
+  граница ошибки GT. Медленное движение (орбита) не даёт таких окон —
+  noise floor = null с причиной;
 * шаги между кадрами (покрытие пространства поз для обучения).
 """
 from __future__ import annotations
@@ -17,10 +18,6 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 
 from .pairs import load_poses, extract_pairs
-from .session import CSV_HEADER
-
-_STATIC_STEP_MM = 2.0
-_STATIC_STEP_DEG = 0.5
 
 
 def build_report(session_dir: str | Path) -> dict:
@@ -75,24 +72,48 @@ def build_report(session_dir: str | Path) -> dict:
         }
 
     # --- noise floor по статичным участкам ---------------------------------
-    T = [np.eye(4) for _ in rows]
-    for i, r in enumerate(rows):
-        if "no_board" in r["flags"]:
+    # «Статичный участок» = окно из 30 кадров, где все позы в пределах
+    # 5 мм и 1° от среднего окна. Дуга орбиты на 30 кадров размахом 6–14°
+    # отбрасывается; разброс окна в статике = только шум GT (обычно
+    # 2–4 мм / 0.5–0.8°). Окна могут пересекаться; кадры всех прошедших
+    # окон пулуются, и noise floor считается на пуле.
+    W = 30
+    dec = [i for i, r in enumerate(rows) if "no_board" not in r["flags"]]
+    ts_all = np.array([[float(rows[i]["tx"]), float(rows[i]["ty"]),
+                        float(rows[i]["tz"])] for i in dec])
+    ms_all = [Rotation.from_quat(
+        [float(rows[i]["qx"]), float(rows[i]["qy"]),
+         float(rows[i]["qz"]), float(rows[i]["qw"])]).as_matrix() for i in dec]
+
+    def _spread(ts: np.ndarray, ms: list) -> tuple[np.ndarray, np.ndarray]:
+        t0 = ts.mean(0)
+        U, _, Vt = np.linalg.svd(np.mean(ms, axis=0))
+        R0 = U @ Vt
+        if np.linalg.det(R0) < 0:
+            U[:, -1] *= -1
+            R0 = U @ Vt
+        dt = np.linalg.norm(ts - t0, axis=1) * 1000.0
+        da = np.array([float(np.rad2deg(
+            Rotation.from_matrix(R0.T @ m).magnitude())) for m in ms])
+        return dt, da
+
+    blocks: list[list[int]] = []
+    for j, idx in enumerate(dec):
+        if j and idx == dec[j - 1] + 1:
+            blocks[-1][1] = idx
+        else:
+            blocks.append([idx, idx])
+    pool: set[int] = set()
+    for bs, be in blocks:
+        if be - bs + 1 < W:
             continue
-        T[i] = np.eye(4)
-        T[i][:3, 3] = [float(r["tx"]), float(r["ty"]), float(r["tz"])]
-        T[i][:3, :3] = Rotation.from_quat(
-            [float(r["qx"]), float(r["qy"]), float(r["qz"]), float(r["qw"])]).as_matrix()
-    static = []
-    for a, b in zip(range(len(rows) - 1), range(1, len(rows))):
-        if "no_board" in rows[a]["flags"] or "no_board" in rows[b]["flags"]:
-            continue
-        M = np.linalg.inv(T[a]) @ T[b]
-        step_mm = float(np.linalg.norm(M[:3, 3])) * 1000.0
-        ang = float(np.rad2deg(Rotation.from_matrix(M[:3, :3]).magnitude()))
-        if step_mm < _STATIC_STEP_MM and ang < _STATIC_STEP_DEG:
-            static.append(b)
-    if len(static) >= 5:
+        for a in range(bs, be - W + 1):
+            b = a + W - 1
+            dt, da = _spread(ts_all[a:b + 1], ms_all[a:b + 1])
+            if float(dt.max()) < 5.0 and float(da.max()) < 1.0:
+                pool.update(dec[a:b + 1])
+    static = sorted(pool)
+    if len(static) >= W:
         # разброс поз в статике относительно среднего участка
         ts = np.array([[float(rows[i]["tx"]), float(rows[i]["ty"]), float(rows[i]["tz"])]
                        for i in static])
@@ -119,6 +140,9 @@ def build_report(session_dir: str | Path) -> dict:
         }
     else:
         rep["noise_floor"] = None
+        rep["noise_floor_reason"] = (
+            "нет статичного окна (30 кадров с разбросом <5 мм/1°); "
+            "noise floor оценивается по сессии static")
     return rep
 
 
