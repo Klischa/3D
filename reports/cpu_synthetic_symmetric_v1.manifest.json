@@ -1,0 +1,82 @@
+{
+  "status": "experimental_synthetic_only",
+  "real_world_validated": false,
+  "base_url": "https://raw.githubusercontent.com/Klischa/astra2/fc628b3c6f4d8f2e02554ae91833a732804ac2dd/models/pose_regressor.onnx",
+  "base_sha256": "78bdab58ef9ddad97930150b5b1409868fd81c66cd6baaab5cc3b2d42e9d845a",
+  "initialization": "original encoder weights; reinitialized 2048->512->256->7 head",
+  "selection": "minimum validation loss; independent test split untouched during training",
+  "config": {
+    "data": {
+      "seed": 20260922,
+      "points": 256,
+      "train_scenes": 128,
+      "validation_scenes": 24,
+      "test_scenes": 32,
+      "max_rotation_deg": 12.0,
+      "max_translation_m": 0.025,
+      "noise_std_m": 0.0007,
+      "partial_outlier_fraction": 0.01,
+      "identity_probability": 0.15
+    },
+    "steps": 1200,
+    "batch_size": 8,
+    "learning_rate": 0.001,
+    "encoder_lr_multiplier": 0.25,
+    "weight_decay": 0.0001,
+    "evaluate_every": 100,
+    "validation_pairs": 96,
+    "rotation_loss_scale_deg": 5.0,
+    "translation_loss_scale_m": 0.01,
+    "threads": 1,
+    "device": "cpu",
+    "symmetric_head": true
+  },
+  "data": {
+    "kind": "procedural synthetic only",
+    "config": {
+      "seed": 20260922,
+      "points": 256,
+      "train_scenes": 128,
+      "validation_scenes": 24,
+      "test_scenes": 32,
+      "max_rotation_deg": 12.0,
+      "max_translation_m": 0.025,
+      "noise_std_m": 0.0007,
+      "partial_outlier_fraction": 0.01,
+      "identity_probability": 0.15
+    },
+    "split_namespace": {
+      "train": 101,
+      "validation": 202,
+      "test": 303
+    },
+    "generator_version": 1,
+    "real_scans_used": false,
+    "occlusion": "approximate half-space crops"
+  },
+  "contract": {
+    "version": 1,
+    "inputs": {
+      "source": "float32[B,3,Ns]",
+      "target": "float32[B,3,Nt]"
+    },
+    "coordinates": "raw, uncentered XYZ in metres; same batch size; finite, nonempty clouds",
+    "output": "float32[B,7] = [tx,ty,tz,qx,qy,qz,qw]",
+    "direction": "target = R(qxyzw) @ source + t",
+    "quaternion": "unit xyzw; q and -q represent the same rotation",
+    "preprocessing": "centering and shared RMS scaling INSIDE the ONNX graph",
+    "translation": "centroids and scale restored INSIDE the ONNX graph",
+    "external_centering_allowed": false,
+    "confidence_output": false
+  },
+  "environment": {
+    "python": "3.11.2",
+    "torch": "2.5.1+cu124",
+    "numpy": "2.4.6",
+    "device": "cpu",
+    "threads": 1
+  },
+  "elapsed_seconds_this_process": 131.02888852600017,
+  "completed_steps": 1200,
+  "best_validation_loss": 2.0649166305859885
+}

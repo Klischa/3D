@@ -1,0 +1,18 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+.cache/
+.DS_Store
+# Raw data, downloaded weights and resumable training state stay out of Git.
+data/
+runs/
+weights/
+*.pt
+*.pth
+# Runtime logs (Orbbec SDK)
+Log/
+# Exported experimental ONNX deliverables may be added explicitly under artifacts/.
